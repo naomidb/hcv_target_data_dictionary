@@ -19,13 +19,21 @@ def get_explanation(c, label):
 def print_411(c, label, field_choices):
     c.execute('SELECT * FROM dictionary WHERE variable_name=?', (label,))
     rows = c.fetchall()
+    details = {}
     count = 0
     for field in field_choices.values():
         try:
             print((' '*8) + field + ': ' + rows[0][count])
+            details[field] = rows[0][count]
         except TypeError as e:
             print((' '*8) + field + ': ')
+            details[field] = ''
+        except IndexError as e:
+            print('Field name does not exist')
+            return details
         count += 1
+
+    return details
 
 def insert_new(c, group):
     fields = ", ".join(group.keys())
@@ -101,13 +109,13 @@ def main():
             if label not in redcap_choices.values():
                 print("This field name is not in the dictionary yet. You can add it by selecting 3 from the menu.")
             else:
-                print_411(c, label, field_choices)
+                details = print_411(c, label, field_choices)
                 print("Write the information you wish to change below. You can skip fields by hitting the return key.")
-                group = {}
                 for field in field_choices.values():
                     entry = input((' '*8) + field + ': ')
-                    group[field] = entry
-                update_old(c, group, label)
+                    if entry:
+                        details[field] = entry
+                update_old(c, details, label)
                 conn.commit()
                 redcap_choices = get_labels(c)
 
